@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
+          key: ${{ runner.os }}-pub-${{ hashFiles('/pubspec.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pub-
 
@@ -29,7 +29,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -45,12 +45,12 @@ jobs:
           channel: 'stable'
 
       - name: Ensure gradlew is executable
-        run: chmod +x android/gradlew || true
+        run: chmod +x android/gradlew  true
 
       - name: Accept Android licenses (if needed)
         if: runner.os == 'Linux'
         run: |
-          yes | sdkmanager --licenses || true
+          yes | sdkmanager --licenses  true
 
       - name: Install Flutter dependencies
         run: flutter pub get
@@ -59,7 +59,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/*.apkkj
