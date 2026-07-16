@@ -28,6 +28,11 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Fix Missing Gradle Wrapper
+        run: |
+          cd android
+          gradle wrapper
+
       - name: Build APK
         run: flutter build apk --release
 
