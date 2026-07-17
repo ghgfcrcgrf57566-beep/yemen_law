@@ -2,81 +2,64 @@ name: Build Flutter APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /opt/hostedtoolcache/jdk/17.0.*/x64
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
+
+      - name: Install prerequisites
+        run: sudo apt-get update && sudo apt-get install -y unzip wget
+
+      - name: Install Android command line tools
+        run: |
+          ANDROID_SDK_ROOT="$HOME/Android"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline.zip
+          unzip -q /tmp/cmdline.zip -d /tmp/cmdline
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv /tmp/cmdline/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+        run: |
+          sdkmanager --sdk_root="$HOME/Android" "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.1.7779620" || true
 
       - name: Accept Android SDK licenses
-        run: yes | flutter doctor --android-licenses || true
+        run: yes | sdkmanager --licenses
 
-      - name: Show environment info
-        run: |
-          echo "=== java -version ==="
-          java -version || true
-          echo "=== flutter doctor -v ==="
-          flutter doctor -v || true
-          echo "=== FLUTTER_ROOT & PUB_CACHE ==="
-          echo "FLUTTER_ROOT: $FLUTTER_ROOT"
-          echo "PUB_CACHE: $PUB_CACHE"
-
-      - name: Set up Gradle (needed if we must generate wrapper in CI)
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.6'
-
-      - name: Ensure Gradle wrapper exists (generate if missing)
-        working-directory: .
-        run: |
-          if [ -f android/gradlew ]; then
-            echo "gradlew already exists"
-          else
-            echo "gradlew not found — generating Gradle wrapper in android/ ..."
-            cd android
-            gradle wrapper --gradle-version 8.6
-            cd ..
-          fi
-
-      - name: Make gradlew executable (if present)
-        run: |
-          if [ -f android/gradlew ]; then
-            chmod +x android/gradlew
-            echo "Made android/gradlew executable"
-          else
-            echo "No android/gradlew to chmod"
-          fi
-
-      - name: Install Flutter dependencies
+      - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build Android APK (Flutter verbose)
-        run: flutter build apk -v
+      - name: Build APK
+        run: flutter build apk --release -v
 
-      # Alternative: use Gradle directly (optional)
-      #- name: Build Android APK (gradle stacktrace)
-      #  working-directory: android
-      #  run: ./gradlew assembleDebug --stacktrace --info --no-daemon
-
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yemen-laws-apk-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: yemen-law-app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
