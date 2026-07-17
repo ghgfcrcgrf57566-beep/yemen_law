@@ -45,7 +45,26 @@ jobs:
           channel: 'stable'
 
       - name: Ensure gradlew is executable
-        run: chmod +x android/gradlew
+        run: chmod +x android/gradlew || true
+
+      # Temporary CI fix: if Gradle wrapper files are missing, install Gradle and generate the wrapper
+      - name: Ensure Gradle installed (for generating wrapper if needed)
+        run: |
+          if ! command -v gradle >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y gradle
+          else
+            echo "gradle already installed"
+          fi
+
+      - name: Generate Gradle wrapper if missing
+        run: |
+          if [ ! -f android/gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "gradle-wrapper.jar missing — generating wrapper in android/ ..."
+            (cd android && gradle wrapper) || (echo "Failed to generate wrapper"; exit 1)
+          else
+            echo "Gradle wrapper exists"
+          fi
 
       - name: Accept Android licenses (if needed)
         if: runner.os == 'Linux'
