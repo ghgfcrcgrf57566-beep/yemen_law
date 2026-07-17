@@ -28,21 +28,28 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | flutter doctor --android-licenses || true
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.6'
-
-      - name: Generate Gradle wrapper
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.6
+      - name: Show environment info
+        run: |
+          echo "=== java -version ==="
+          java -version || true
+          echo "=== flutter doctor -v ==="
+          flutter doctor -v || true
+          echo "=== Check gradle wrapper files ==="
+          ls -la android/gradle || true
+          ls -la android/gradle/wrapper || true
+          echo "=== gradlew --version (if exists) ==="
+          if [ -x ./gradlew ]; then ./gradlew --version || true; else echo "no gradlew"; fi
 
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Build Android APK (verbose)
-        working-directory: android
-        run: ./gradlew assembleDebug --stacktrace --info
+      - name: Build Android APK (Flutter verbose)
+        run: flutter build apk -v
+
+      # بديل: لو تفضل استخدام gradle مباشرة، فكّر بهذا (معلّق/اختياري)
+      #- name: Build Android APK (gradle stacktrace)
+      #  working-directory: android
+      #  run: ./gradlew assembleDebug --stacktrace --info --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
