@@ -34,11 +34,35 @@ jobs:
           java -version || true
           echo "=== flutter doctor -v ==="
           flutter doctor -v || true
-          echo "=== Check gradle wrapper files ==="
-          ls -la android/gradle || true
-          ls -la android/gradle/wrapper || true
-          echo "=== gradlew --version (if exists) ==="
-          if [ -x ./gradlew ]; then ./gradlew --version || true; else echo "no gradlew"; fi
+          echo "=== FLUTTER_ROOT & PUB_CACHE ==="
+          echo "FLUTTER_ROOT: $FLUTTER_ROOT"
+          echo "PUB_CACHE: $PUB_CACHE"
+
+      - name: Set up Gradle (needed if we must generate wrapper in CI)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.6'
+
+      - name: Ensure Gradle wrapper exists (generate if missing)
+        working-directory: .
+        run: |
+          if [ -f android/gradlew ]; then
+            echo "gradlew already exists"
+          else
+            echo "gradlew not found — generating Gradle wrapper in android/ ..."
+            cd android
+            gradle wrapper --gradle-version 8.6
+            cd ..
+          fi
+
+      - name: Make gradlew executable (if present)
+        run: |
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+            echo "Made android/gradlew executable"
+          else
+            echo "No android/gradlew to chmod"
+          fi
 
       - name: Install Flutter dependencies
         run: flutter pub get
@@ -46,7 +70,7 @@ jobs:
       - name: Build Android APK (Flutter verbose)
         run: flutter build apk -v
 
-      # بديل: لو تفضل استخدام gradle مباشرة، فكّر بهذا (معلّق/اختياري)
+      # Alternative: use Gradle directly (optional)
       #- name: Build Android APK (gradle stacktrace)
       #  working-directory: android
       #  run: ./gradlew assembleDebug --stacktrace --info --no-daemon
