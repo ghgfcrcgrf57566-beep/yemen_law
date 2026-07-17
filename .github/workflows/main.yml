@@ -50,7 +50,11 @@ jobs:
       - name: Accept Android licenses (if needed)
         if: runner.os == 'Linux'
         run: |
-          yes | sdkmanager --licenses
+          if command -v sdkmanager >/dev/null 2>&1; then
+            yes | sdkmanager --licenses
+          else
+            echo "sdkmanager not found — skipping license acceptance"
+          fi
 
       - name: Install Flutter dependencies
         run: flutter pub get
