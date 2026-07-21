@@ -28,20 +28,30 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Set up Gradle
+      - name: Set up Gradle (ensure correct version for Flutter)
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.6'
+          gradle-version: '8.7'
 
-      - name: Ensure Gradle wrapper exists
+      - name: Ensure Gradle wrapper exists (generate if missing)
         working-directory: android
         run: |
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            gradle wrapper --gradle-version 8.6
+          # If both gradlew and the wrapper jar exist, nothing to do.
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Gradle wrapper already exists"
+          else
+            echo "Generating Gradle wrapper in android/ ..."
+            gradle wrapper --gradle-version 8.7
           fi
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
+      - name: Make gradlew executable (if present)
+        run: |
+          if [ -f android/gradlew ]; then
+            chmod +x android/gradlew
+            echo "Made android/gradlew executable"
+          else
+            echo "No android/gradlew to chmod"
+          fi
 
       - name: Build APK
         run: flutter build apk --release
